@@ -11,6 +11,39 @@ visualiser leurs indicateurs de rentabilité :
 - **Scénarios de sensibilité** : impact d'une variation des flux d'exploitation sur la
   VAN, seuils de rentabilité, scénarios pessimiste / base / optimiste et export CSV.
 
+## Architecture
+
+Le projet est organisé **en couches** pour faciliter l'entretien et le développement :
+
+```
+Fintech/
+├── app.py                    # point d'entrée Streamlit : assemble les sections
+├── parametres.py             # configuration : couleurs, bornes, valeurs par défaut, textes
+├── finance/                  # LOGIQUE MÉTIER PURE (aucun import Streamlit)
+│   ├── actualisation.py      #   VAN, VAN cumulée, délai de récupération, profil
+│   ├── rentabilite.py        #   TRI, taux de Fisher (recherche de racines)
+│   └── sensibilite.py        #   variation des flux, seuil critique
+├── ui/                       # INTERFACE (Streamlit / Plotly)
+│   ├── formatage.py          #   nombres au format français
+│   ├── interpretation.py     #   phrases d'analyse (verdict, Fisher, seuils)
+│   ├── graphiques.py         #   figures Plotly
+│   ├── modeles.py            #   structures de données + calcul des résultats
+│   ├── barre_laterale.py     #   paramètres de la barre latérale
+│   └── sections.py           #   sections de la page
+├── tests/                    # tests unitaires (pytest)
+├── requirements.txt          # dépendances d'exécution
+├── requirements-dev.txt      # dépendances de développement (pytest)
+└── .streamlit/config.toml    # thème
+```
+
+**Principes :**
+
+- `finance/` ne dépend d'aucune bibliothèque d'interface → testable et réutilisable ;
+- `ui/interpretation.py`, `ui/formatage.py` et `ui/graphiques.py` sont des fonctions
+  pures (entrées → sorties), testables sans lancer Streamlit ;
+- `app.py` se limite à l'assemblage : le flux de l'application est lisible d'un coup
+  d'œil.
+
 ## Prérequis
 
 - Python 3.10 ou plus récent (3.12 conseillé).
@@ -20,6 +53,12 @@ visualiser leurs indicateurs de rentabilité :
 ```powershell
 python -m venv .venv
 .venv\Scripts\python -m pip install -r requirements.txt
+```
+
+Pour développer (tests) :
+
+```powershell
+.venv\Scripts\python -m pip install -r requirements-dev.txt
 ```
 
 ## Lancement
@@ -54,22 +93,25 @@ meilleur TRI ; les courbes se croisent au **taux de Fisher ≈ 11,9 %**.
 | Taux de Fisher | r tel que VAN_A(r) = VAN_B(r) | Taux d'indifférence : au-delà, le classement des projets s'inverse (TRI des flux différentiels). |
 | DRCI | Année où la VAN cumulée ≥ 0 | Vitesse de récupération de l'investissement, en valeur actualisée. |
 
-## Structure
-
-```
-Fintech/
-├── app.py                    # interface Streamlit (graphiques Plotly, mise en page)
-├── finance.py                # logique financière (VAN, TRI, Fisher, DRCI, sensibilité)
-├── requirements.txt          # dépendances
-├── tests/test_finance.py     # tests unitaires de la logique
-└── .streamlit/config.toml    # thème de l'application
-```
-
 ## Tests
 
 ```powershell
-.venv\Scripts\python tests/test_finance.py
+.venv\Scripts\python -m pytest tests
 ```
+
+Chaque module de tests peut aussi être lancé directement, sans pytest :
+
+```powershell
+.venv\Scripts\python tests\test_actualisation.py
+```
+
+## Déploiement (Streamlit Community Cloud)
+
+1. Poussez le projet sur GitHub ;
+2. Sur <https://share.streamlit.io>, créez une application (« Create app ») en pointant
+   vers le dépôt, branche `main`, fichier principal `app.py` ;
+3. Les dépendances de `requirements.txt` sont installées automatiquement ; chaque
+   `git push` redéploie l'application.
 
 ## Hypothèses et limites
 
